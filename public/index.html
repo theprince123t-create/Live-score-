@@ -1,117 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Live Cricket Overlay</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  body{margin:0;background:transparent;font-family:Arial,Helvetica,sans-serif}
-  .bar{
-    display:flex;align-items:center;justify-content:space-between;
-    width:920px;padding:10px 16px;border-radius:28px;
-    background:#a900a9;color:#fff;box-sizing:border-box;
-  }
-  .left{display:flex;align-items:center;gap:10px;min-width:280px}
-  .teamflag{width:34px;height:22px;border:1px solid #fff;background:#fff}
-  .names{line-height:1.1}
-  .names div{font-size:14px}
-  .names .bline{font-weight:bold}
-  .center{text-align:center;flex:1;font-weight:bold}
-  .right{display:flex;align-items:center;gap:14px;min-width:300px;justify-content:flex-end}
-  .bowler{font-size:14px}
-  .balls{display:flex;gap:6px}
-  .dot{
-    width:18px;height:18px;border-radius:50%;
-    border:1px solid #000;background:#eee;display:flex;
-    align-items:center;justify-content:center;font-size:11px;color:#000;
-  }
-  .four{background:yellow}
-  .six{background:limegreen}
-  .wkt{background:red;color:#fff}
-</style>
+  <meta charset="UTF-8">
+  <title>Live Score Overlay</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: purple;
+      color: white;
+      font-size: 22px;
+      text-align: center;
+      padding: 8px;
+    }
+  </style>
 </head>
 <body>
-  <div class="bar">
-    <div class="left">
-      <div class="teamflag"></div>
-      <div class="names">
-        <div id="bat1" class="bline">—</div>
-        <div id="bat2">—</div>
-      </div>
-    </div>
+  <div id="overlay">Loading...</div>
 
-    <div class="center" id="mid">Loading…</div>
+  <script>
+    async function fetchScore() {
+      try {
+        const res = await fetch(`/api/score?id=18754689&slug=jaajssi-vs-jeejej`);
+        const json = await res.json();
 
-    <div class="right">
-      <div class="bowler" id="bowler">—</div>
-      <div class="balls" id="balls"></div>
-    </div>
-  </div>
+        // Score JSON ke andar run aur over nikalo
+        const inning = json.pageProps.miniScorecard.data.innings[0];
+        const scoreText = `${inning.summary.score} in ${inning.summary.over}`;
 
-<script>
-  function qs(name){
-    const u=new URLSearchParams(location.search);
-    return u.get(name);
-  }
-
-  function ballClass(v){
-    const s=String(v||"").toUpperCase();
-    if(s==="4") return "four";
-    if(s==="6") return "six";
-    if(s==="W") return "wkt";
-    return "";
-  }
-
-  async function load(){
-    try{
-      const urlParam = qs("url");
-      const idParam  = qs("id");
-      const slug     = qs("slug");
-
-      let api = "/api?";
-      if (urlParam) api += "url=" + encodeURIComponent(urlParam);
-      else if (idParam) api += "id=" + encodeURIComponent(idParam) + (slug?("&slug="+encodeURIComponent(slug)):"");
-      else throw new Error("Add ?url=<cricheroes live link> OR ?id=<matchId>&slug=<TeamA-vs-TeamB>");
-
-      const r = await fetch(api);
-      const j = await r.json();
-      if(!r.ok) throw new Error(j.error||"API error");
-
-      // batsmen
-      const bat1 = `${j.batsman1.name||"—"} ${j.batsman1.runs??""}${j.batsman1.runs!==""?"*":""}`;
-      const bat2 = `${j.batsman2.name||"—"} ${j.batsman2.runs??""}`;
-      document.getElementById("bat1").textContent = bat1;
-      document.getElementById("bat2").textContent = bat2;
-
-      // center: Team score
-      const mid = `${j.battingTeam||""} ${j.score??0}/${j.wickets??0} (${j.overs||""})`;
-      document.getElementById("mid").textContent = mid;
-
-      // bowler
-      const bow = j.bowler||{};
-      const bowTxt = bow.name
-        ? `${bow.name} ${bow.overs}-${bow.runs}-${bow.wickets}  (Eco ${bow.economy_rate||"-"})`
-        : "—";
-      document.getElementById("bowler").textContent = bowTxt;
-
-      // last 6 balls
-      const wrap = document.getElementById("balls");
-      wrap.innerHTML = "";
-      (j.recentBalls||[]).forEach(v=>{
-        const d=document.createElement("div");
-        d.className="dot " + ballClass(v);
-        d.textContent = String(v||"");
-        wrap.appendChild(d);
-      });
-
-    }catch(e){
-      document.getElementById("mid").textContent = e.message;
-      console.error(e);
+        document.getElementById("overlay").innerText = 
+          `Live: ${scoreText}`;
+      } catch (err) {
+        document.getElementById("overlay").innerText = "Error loading score";
+      }
     }
-  }
 
-  load();
-  setInterval(load, 10000); // 10 sec refresh
-</script>
+    fetchScore();
+    setInterval(fetchScore, 10000); // har 10 sec me update
+  </script>
 </body>
 </html>
