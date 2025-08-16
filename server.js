@@ -1,40 +1,44 @@
 const express = require("express");
 const fetch = require("node-fetch");
+const path = require("path");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Public folder serve karna (overlay UI)
 app.use(express.static("public"));
 
+// API route for fetching score
 app.get("/api/score", async (req, res) => {
   try {
-    const response = await fetch("https://cricheroes.com/_next/data/GWn-9wsDkpg5k-2hvyhaR/scorecard/18754689/individual/jaajssi-vs-jeejej/live.json");
-    const data = await response.json();
+    const { id, slug } = req.query;
 
-    // Extract only the needed `miniScorecard` path
-    const mini = data.pageProps?.miniScorecard?.data;
-    if (!mini) return res.json({ error: "Product not found" });
+    if (!id || !slug) {
+      return res.status(400).json({ error: "Missing id or slug in query" });
+    }
 
-    // Pick batting info
-    const battingTeam = mini.team_a.summary && !/Yet to bat/i.test(mini.team_a.summary)
-      ? mini.team_a : mini.team_b;
-    const inning = battingTeam.innings?.[0] || {};
-    const batsmen = mini.batsmen || {};
-    const bowler = mini.bowlers?.sb || mini.bowlers?.nsb || {};
+    // Cricheroes JSON API banani
+    const apiUrl = `https://cricheroes.com/_next/data/GWn-9wsDkpg5k-2hvyhaR/scorecard/${id}/individual/${slug}/live.json`;
 
-    res.json({
-      team: battingTeam.name || "",
-      score: inning.summary?.score || "",
-      overs: inning.summary?.over?.replace(/[()]/g, "") || inning.overs_played || "",
-      crr: inning.summary?.rr || "",
-      batsman1: { name: batsmen.sb?.name || "", runs: batsmen.sb?.runs || 0, balls: batsmen.sb?.balls || 0 },
-      batsman2: { name: batsmen.nsb?.name || "", runs: batsmen.nsb?.runs || 0, balls: batsmen.nsb?.balls || 0 },
-      bowler: { name: bowler.name || "", overs: bowler.overs || "", runs: bowler.runs || 0, wickets: bowler.wickets || 0 },
-      balls: inning.summary?.over && (inning.summary.over.startsWith("(") ? mini.recent_over.split("|")[0].trim().split(" ") : []) || []
+    const response = await fetch(apiUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json",
+      },
     });
 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (!response.ok) {
+      return res.status(500).json({ error: "Cricheroes fetch failed" });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch score" });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Server listen
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
