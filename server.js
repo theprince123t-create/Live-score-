@@ -12,8 +12,23 @@ app.get("/api/score", async (req, res) => {
     const response = await fetch("https://cricheroes.com/_next/data/GWn-9wsDkpg5k-2hvyhaR/scorecard/18754689/individual/jaajssi-vs-jeejej/live.json");
     const data = await response.json();
 
-    res.json(data); // API ka data browser me return hoga
+    // actual score data pageProps ke andar hai
+    const scoreData = data?.pageProps?.data;
+
+    if (!scoreData) {
+      return res.json({ error: "No score found" });
+    }
+
+    // Example: sirf useful data bhejna
+    res.json({
+      teams: scoreData.matchHeader?.teams || [],
+      batsmen: scoreData.scoreCard?.[0]?.batsmen || [],
+      bowlers: scoreData.scoreCard?.[0]?.bowlers || [],
+      score: scoreData.scoreCard?.[0]?.scoreDetails || {},
+    });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch score" });
   }
 });
