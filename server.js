@@ -3,37 +3,38 @@ const fetch = require("node-fetch");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Public folder serve karna (index.html etc.)
 app.use(express.static("public"));
 
-// Score API route
 app.get("/api/score", async (req, res) => {
   try {
     const response = await fetch("https://cricheroes.com/_next/data/GWn-9wsDkpg5k-2hvyhaR/scorecard/18754689/individual/jaajssi-vs-jeejej/live.json");
     const data = await response.json();
 
-    // actual score data pageProps ke andar hai
-    const scoreData = data?.pageProps?.data;
+    // Extract only the needed `miniScorecard` path
+    const mini = data.pageProps?.miniScorecard?.data;
+    if (!mini) return res.json({ error: "Product not found" });
 
-    if (!scoreData) {
-      return res.json({ error: "No score found" });
-    }
+    // Pick batting info
+    const battingTeam = mini.team_a.summary && !/Yet to bat/i.test(mini.team_a.summary)
+      ? mini.team_a : mini.team_b;
+    const inning = battingTeam.innings?.[0] || {};
+    const batsmen = mini.batsmen || {};
+    const bowler = mini.bowlers?.sb || mini.bowlers?.nsb || {};
 
-    // Example: sirf useful data bhejna
     res.json({
-      teams: scoreData.matchHeader?.teams || [],
-      batsmen: scoreData.scoreCard?.[0]?.batsmen || [],
-      bowlers: scoreData.scoreCard?.[0]?.bowlers || [],
-      score: scoreData.scoreCard?.[0]?.scoreDetails || {},
+      team: battingTeam.name || "",
+      score: inning.summary?.score || "",
+      overs: inning.summary?.over?.replace(/[()]/g, "") || inning.overs_played || "",
+      crr: inning.summary?.rr || "",
+      batsman1: { name: batsmen.sb?.name || "", runs: batsmen.sb?.runs || 0, balls: batsmen.sb?.balls || 0 },
+      batsman2: { name: batsmen.nsb?.name || "", runs: batsmen.nsb?.runs || 0, balls: batsmen.nsb?.balls || 0 },
+      bowler: { name: bowler.name || "", overs: bowler.overs || "", runs: bowler.runs || 0, wickets: bowler.wickets || 0 },
+      balls: inning.summary?.over && (inning.summary.over.startsWith("(") ? mini.recent_over.split("|")[0].trim().split(" ") : []) || []
     });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch score" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Server listen
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
