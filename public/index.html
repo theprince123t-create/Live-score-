@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Live Score Overlay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Score</title>
   <style>
     body {
       margin: 0;
-      padding: 0;
-      overflow: hidden;
+      font-family: Arial, sans-serif;
     }
     #overlay {
       position: fixed;
@@ -16,26 +16,28 @@
       width: 100%;
       background: purple;
       color: white;
-      font-size: 22px;
+      padding: 10px;
       text-align: center;
-      padding: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 9999;
     }
   </style>
 </head>
 <body>
-  <div id="overlay">Loading...</div>
+  <div id="overlay">Loading score...</div>
 
   <script>
     async function fetchScore() {
       try {
-        const res = await fetch(`/api/score?id=18754689&slug=jaajssi-vs-jeejej`);
+        // 👇 Yaha aap apna Render API link daalna
+        const res = await fetch("https://live-score-4.onrender.com/api/score?id=18754689&slug=jaajssi-vs-jeejej");
         const json = await res.json();
 
-        // Score JSON ke andar run aur over nikalo
         const inning = json.pageProps.miniScorecard.data.innings[0];
         const scoreText = `${inning.summary.score} in ${inning.summary.over}`;
 
-        document.getElementById("overlay").innerText = 
+        document.getElementById("overlay").innerText =
           `Live: ${scoreText}`;
       } catch (err) {
         document.getElementById("overlay").innerText = "Error loading score";
@@ -43,7 +45,7 @@
     }
 
     fetchScore();
-    setInterval(fetchScore, 10000); // har 10 sec me update
+    setInterval(fetchScore, 10000); // Har 10 sec me update
   </script>
 </body>
 </html>
